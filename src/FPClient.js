@@ -14,7 +14,7 @@ const FPEncryptor = require('./FPEncryptor');
 class FPClient{
     constructor(options){
         this._buffer = Buffer.allocUnsafe(16);
-        this._autoReconnect = options ? options.autoReconnect : true;
+        this._autoReconnect = options ? options.autoReconnect : false;
         this._conn = new FPSocket(options);
 
         this._conn.on('connect', () => {
