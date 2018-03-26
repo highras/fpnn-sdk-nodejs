@@ -1,15 +1,14 @@
 'use strict'
 
 const Emitter = require('events').EventEmitter;
-const defer = require('co-defer');
-const wait = require('co-wait');
 const msgpack = require("msgpack-lite");
 
-const conf = require('./FPConfig');
+const FPConfig = require('./FPConfig');
 const FPSocket = require('./FPSocket');
 const FPPackage = require('./FPPackage');
 const FPCallback = require('./FPCallback');
 const FPEncryptor = require('./FPEncryptor');
+const FPProcessor = require('./FPProcessor');
 
 class FPClient{
     constructor(options){
@@ -17,36 +16,46 @@ class FPClient{
         this._autoReconnect = options ? options.autoReconnect : false;
         this._conn = new FPSocket(options);
 
+        let self = this; 
         this._conn.on('connect', () => {
-            onConnect.call(this);
+            onConnect.call(self);
         });
 
         this._conn.on('close', () => {
-            onClose.call(this);
+            onClose.call(self);
         });
 
         this._conn.on('data', (chunk) => {
-            onData.call(this, chunk);
+            onData.call(self, chunk);
         });
 
         this._conn.on('error', (err) => {
-            this.emit('error', err);
+            self.emit('error', err);
         });
 
         this._pkg = new FPPackage();
         this._cbs = new FPCallback();
         this._cyr = new FPEncryptor(this._pkg);
+        this._psr = new FPProcessor();
 
         this._seq = 0;
         this._wpos = 0;
         this._peekData = null;
 
-        this._buffer = Buffer.allocUnsafe(conf.READ_BUFFER_LEN);
+        this._buffer = Buffer.allocUnsafe(FPConfig.READ_BUFFER_LEN);
+    }
+
+    get processor(){
+        return this._psr;
+    }
+
+    set processor(value){
+        return this._psr = value;
     }
 
     connectCryptor(pemData, curveName, strength, streamMode){
         if (this.hasConnect || this._cyr.crypto){
-            this.emit('error', { code:conf.ERROR_CODE.FPNN_EC_CORE_INVALID_CONNECTION, ex:'FPNN_EC_CORE_INVALID_CONNECTION' });
+            this.emit('error', { code:FPConfig.ERROR_CODE.FPNN_EC_CORE_INVALID_CONNECTION, ex:'FPNN_EC_CORE_INVALID_CONNECTION' });
             return;
         }
 
@@ -56,12 +65,18 @@ class FPClient{
 
     connect(){
         if (this.hasConnect){
-            this._conn.close();
+            this.close();
             return;
         }
 
         this._cyr.cryptoed = false;
         this._conn.open();
+    }
+
+    close(){
+        if (this.hasConnect){
+            this._conn.close();
+        } 
     }
 
     sendQuest(options, callback, timeout){
@@ -72,7 +87,7 @@ class FPClient{
 
         let data = {};
 
-        data.magic = options.magic !== undefined ? options.magic : conf.TCP_MAGIC;
+        data.magic = options.magic !== undefined ? options.magic : FPConfig.TCP_MAGIC;
         data.version = options.version !== undefined ? options.version : 1;
         data.flag = options.flag !== undefined ? options.flag : 0;
         data.mtype = options.mtype !== undefined ? options.mtype : 1;
@@ -82,7 +97,7 @@ class FPClient{
         data.payload = options.payload;
 
         data = this._pkg.buildPkgData(data);
-        if (callback) this._cbs.addCallback(this._pkg.cbKey(data), callback, timeout);
+        if (callback) this._cbs.addCb(this._pkg.cbKey(data), callback, timeout);
 
         let buf = this._pkg.enCode(data);
         buf = this._cyr.enCode(buf);
@@ -98,7 +113,7 @@ class FPClient{
 
         let data = {};
 
-        data.magic = options.magic !== undefined ? options.magic : conf.TCP_MAGIC;
+        data.magic = options.magic !== undefined ? options.magic : FPConfig.TCP_MAGIC;
         data.version = options.version !== undefined ? options.version : 1;
         data.flag = options.flag !== undefined ? options.flag : 0;
         data.mtype = options.mtype !== undefined ? options.mtype : 0;
@@ -151,20 +166,19 @@ function onPubkey(data){
 function onClose(){
     if (this._autoReconnect){
         let self = this;
-        defer.nextTick(function *(){
-            yield wait(conf.SEND_TIMEOUT);
+        setTimeout(() => {
             self.connect();
-        }); 
+        }, FPConfig.SEND_TIMEOUT);
     }
 
     this._seq = 0;
     this._wpos = 0;
     this._peekData = null;
 
-    this._buffer = Buffer.allocUnsafe(conf.READ_BUFFER_LEN);
-    this._cbs.removeAll();
+    this._buffer = Buffer.allocUnsafe(FPConfig.READ_BUFFER_LEN);
+    this._cbs.removeCb();
 
-    this.emit('error', { code:conf.ERROR_CODE.FPNN_EC_CORE_CONNECTION_CLOSED, ex:'FPNN_EC_CORE_CONNECTION_CLOSED' });
+    this.emit('close');
 }
 
 function onData(chunk){
@@ -184,7 +198,7 @@ function onData(chunk){
         this._peekData = this._cyr.peekHead(this._buffer);
 
         if (!this._peekData){
-            this.conn.close({ code:conf.ERROR_CODE.FPNN_EC_CORE_CONNECTION_CLOSED, ex:'FPNN_EC_CORE_CONNECTION_CLOSED' });
+            this.conn.close({ code:FPConfig.ERROR_CODE.FPNN_EC_CORE_CONNECTION_CLOSED, ex:'FPNN_EC_CORE_CONNECTION_CLOSED' });
             return;
         }
     }
@@ -194,7 +208,7 @@ function onData(chunk){
         let mbuf = Buffer.allocUnsafe(this._peekData.pkgLen);
         this._buffer.copy(mbuf, 0, 0, this._peekData.pkgLen);
 
-        let len = Math.max(2 * (this._wpos - this._peekData.pkgLen), conf.READ_BUFFER_LEN);
+        let len = Math.max(2 * (this._wpos - this._peekData.pkgLen), FPConfig.READ_BUFFER_LEN);
         let buf = Buffer.allocUnsafe(len);
         this._wpos = this._buffer.copy(buf, 0, this._peekData.pkgLen, this._peekData.pkgLen + diff);
         this._buffer = buf;
@@ -205,9 +219,18 @@ function onData(chunk){
         mbuf = this._cyr.deCode(mbuf);
 
         let data = this._pkg.deCode(mbuf);
-        let cbkey = this._pkg.cbKey(data);
 
-        this._cbs.callback(cbkey, data);
+        if (this._pkg.isAnswer(data)){
+            let cbkey = this._pkg.cbKey(data);
+            this._cbs.execCb(cbkey, data);
+        }
+
+        if (this._pkg.isQuest(data)){
+            let self = this;
+            this._psr.service(data, (payload, exception) => {
+                sendAnswer.call(self, data.flag, data.seq, payload, exception);
+            });
+        }
     }
 }
 

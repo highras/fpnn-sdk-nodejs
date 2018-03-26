@@ -1,15 +1,15 @@
 'use strict'
 
-const conf = require('./FPConfig');
+const FPConfig = require('./FPConfig');
 
 class FPPackage{
-
-    constructor(){}
+    constructor(){
+    }
 
     buildPkgData(options){
         let data = {};
 
-        data.magic = options ? options.magic : conf.TCP_MAGIC;
+        data.magic = options ? options.magic : FPConfig.TCP_MAGIC;
         data.version = options ? options.version : 0;
         data.flag = options ? options.flag : 0;
         data.mtype = options ? options.mtype : 0;
@@ -37,11 +37,11 @@ class FPPackage{
     }
 
     isHTTP(data){
-        return conf.HTTP_MAGIC.equals(data.magic);
+        return FPConfig.HTTP_MAGIC.equals(data.magic);
     }
 
     isTCP(data){
-        return conf.TCP_MAGIC.equals(data.magic);
+        return FPConfig.TCP_MAGIC.equals(data.magic);
     }
 
     isMsgPack(data){
@@ -160,13 +160,13 @@ class FPPackage{
 
         mbuf = Buffer.allocUnsafe(1);
         pos += buf.copy(mbuf, 0, pos, pos + 1);
-        peek.version = conf.FPNN_VERSION.indexOf(mbuf);
+        peek.version = FPConfig.FPNN_VERSION.indexOf(mbuf);
 
         pos += buf.copy(mbuf, 0, pos, pos + 1);
-        peek.flag = conf.FP_FLAG.indexOf(mbuf);
+        peek.flag = FPConfig.FP_FLAG.indexOf(mbuf);
 
         pos += buf.copy(mbuf, 0, pos, pos + 1);
-        peek.mtype = conf.FP_MESSAGE_TYPE.indexOf(mbuf);
+        peek.mtype = FPConfig.FP_MESSAGE_TYPE.indexOf(mbuf);
 
         pos += buf.copy(mbuf, 0, pos, pos + 1);
         peek.ss = mbuf.readUInt8(0);
@@ -276,24 +276,24 @@ function buildHeader(data, size){
     let buf = Buffer.allocUnsafe(size);
 
     if (this.isHTTP(data)){
-        data.wpos += conf.HTTP_MAGIC.copy(buf, data.wpos, 0);
+        data.wpos += FPConfig.HTTP_MAGIC.copy(buf, data.wpos, 0);
     }
 
     if (this.isTCP(data)){
-        data.wpos += conf.TCP_MAGIC.copy(buf, data.wpos, 0);
+        data.wpos += FPConfig.TCP_MAGIC.copy(buf, data.wpos, 0);
     }
 
-    data.wpos += conf.FPNN_VERSION.copy(buf, data.wpos, data.version, data.version + 1);
+    data.wpos += FPConfig.FPNN_VERSION.copy(buf, data.wpos, data.version, data.version + 1);
 
     if (this.isJson(data)){
-        data.wpos += conf.FP_FLAG.copy(buf, data.wpos, data.flag, data.flag + 1);
+        data.wpos += FPConfig.FP_FLAG.copy(buf, data.wpos, data.flag, data.flag + 1);
     }
 
     if (this.isMsgPack(data)){
-        data.wpos += conf.FP_FLAG.copy(buf, data.wpos, data.flag, data.flag + 1);
+        data.wpos += FPConfig.FP_FLAG.copy(buf, data.wpos, data.flag, data.flag + 1);
     }
 
-    data.wpos += conf.FP_MESSAGE_TYPE.copy(buf, data.wpos, data.mtype, data.mtype + 1);
+    data.wpos += FPConfig.FP_MESSAGE_TYPE.copy(buf, data.wpos, data.mtype, data.mtype + 1);
 
     return buf;
 }

@@ -2,7 +2,7 @@
 
 const Emitter = require('events').EventEmitter;
 const net = require('net');
-const conf = require('./FPConfig');
+const FPConfig = require('./FPConfig');
 
 class FPSocket{
     constructor(options){
@@ -43,35 +43,34 @@ class FPSocket{
 
     open(){
         if (this.isConnecting || this.isOpen || this._client || net.isIP(this._host) <= 0 || this._port < 0){
-            this.emit('error', { code:conf.ERROR_CODE.FPNN_EC_CORE_INVALID_CONNECTION, ex:'FPNN_EC_CORE_INVALID_CONNECTION' });
+            this.emit('error', { code:FPConfig.ERROR_CODE.FPNN_EC_CORE_INVALID_CONNECTION, ex:'FPNN_EC_CORE_INVALID_CONNECTION' });
             return;
         }
 
+        let self = this;
         this._client = new net.Socket();
 
         this._client.on('connect', () => {
-            onConnect.call(this);
+            onConnect.call(self);
         });
 
         this._client.on('close', (had_error) => {
-            onClose.call(this, had_error);
+            onClose.call(self, had_error);
         });
 
         this._client.on('error', (err) => {
-            onError.call(this, err);
+            onError.call(self, err);
         });
 
         this._client.on('data', (chunk) => {
-            onData.call(this, chunk);
+            onData.call(self, chunk);
         });
 
         this._client.on('timeout', () => {
-            onTimeout.call(this);  
+            onTimeout.call(self);  
         });
 
         this._client.setTimeout(this._connectionTimeout);
-        // this.client.setKeepAlive(true, 60 * 1000);
-
         this._client.connect(this._port, this._host);
     }
 
@@ -104,7 +103,7 @@ function onClose(had_error){
     }
 
     if (had_error){
-        this.emit('error', { code:conf.ERROR_CODE.FPNN_EC_CORE_INVALID_PACKAGE, ex:'FPNN_EC_CORE_INVALID_PACKAGE' });
+        this.emit('error', { code:FPConfig.ERROR_CODE.FPNN_EC_CORE_INVALID_PACKAGE, ex:'FPNN_EC_CORE_INVALID_PACKAGE' });
     }
 
     this._isConnect = false;
@@ -116,7 +115,7 @@ function onError(err){
 }
 
 function onTimeout(){
-    this.close({ code:conf.ERROR_CODE.FPNN_EC_CORE_TIMEOUT, ex:'FPNN_EC_CORE_TIMEOUT' });
+    this.close();
 }
 
 Object.setPrototypeOf(FPSocket.prototype, Emitter.prototype);

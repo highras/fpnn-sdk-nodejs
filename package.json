@@ -4,15 +4,11 @@
     "description": "Node.js SDK with FPNN",
     "main": "src/FPClient.js",
     "scripts": {
-        "test": "echo \"Error: no test specified\" && exit 1"
+        "test": "node test/test-fpnn.js"
     },
     "author": "Dixun",
     "license": "ISC",
     "dependencies": {
-        "co": "^4.6.0",
-        "co-defer": "^1.0.0",
-        "co-wait": "0.0.0",
-        "msgpack-lite": "^0.1.26",
-        "thunkify": "^2.1.2"
+        "msgpack-lite": "^0.1.26"
     }
 }

@@ -1,7 +1,7 @@
 'use strict'
 
 const crypto = require('crypto');
-const conf = require('./FPConfig');
+const FPConfig = require('./FPConfig');
 
 class FPEncryptor{
     constructor(fppkg){
@@ -17,8 +17,8 @@ class FPEncryptor{
     }
 
     encryptor(pemData, curveName, strength, streamMode){
-        if (conf.CRYPTO_CURVES.indexOf(curveName) == -1){
-            curveName = conf.CRYPTO_CURVES[0];
+        if (FPConfig.CRYPTO_CURVES.indexOf(curveName) == -1){
+            curveName = FPConfig.CRYPTO_CURVES[0];
         }
 
         if (strength != 128 && strength != 256){
@@ -125,10 +125,10 @@ class FPEncryptor{
 }
 
 function cryptoDecode(buf){
-    let algorithm = conf.CRYPTO_ALGORITHM[0];
+    let algorithm = FPConfig.CRYPTO_ALGORITHM[0];
 
     if (this._strength == 256){
-        algorithm = conf.CRYPTO_ALGORITHM[1];
+        algorithm = FPConfig.CRYPTO_ALGORITHM[1];
     }
 
     let encrypted = Buffer.allocUnsafe(buf.length - 4);
@@ -146,10 +146,10 @@ function streamDecode(buf){
 }
 
 function cryptoEncode(buf){
-    let algorithm = conf.CRYPTO_ALGORITHM[0];
+    let algorithm = FPConfig.CRYPTO_ALGORITHM[0];
 
     if (this._strength == 256){
-        algorithm = conf.CRYPTO_ALGORITHM[1];
+        algorithm = FPConfig.CRYPTO_ALGORITHM[1];
     }
 
     let cipher = crypto.createCipheriv(algorithm, this._key, this._iv);
@@ -213,19 +213,19 @@ function streamPeekHead(buf){
 }
 
 function checkHead(data){
-    if (!conf.TCP_MAGIC.equals(data.magic) && !conf.HTTP_MAGIC.equals(data.magic)){
+    if (!FPConfig.TCP_MAGIC.equals(data.magic) && !FPConfig.HTTP_MAGIC.equals(data.magic)){
         return false;
     }
 
-    if (data.version < 0 || data.version >= conf.FPNN_VERSION.length){
+    if (data.version < 0 || data.version >= FPConfig.FPNN_VERSION.length){
         return false;
     }
 
-    if (data.flag < 0 || data.flag >= conf.FP_FLAG.length){
+    if (data.flag < 0 || data.flag >= FPConfig.FP_FLAG.length){
         return false;
     }
     
-    if (data.mtype < 0 || data.mtype >= conf.FP_MESSAGE_TYPE.length){
+    if (data.mtype < 0 || data.mtype >= FPConfig.FP_MESSAGE_TYPE.length){
         return false;
     }
 
