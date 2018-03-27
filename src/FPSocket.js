@@ -42,7 +42,7 @@ class FPSocket{
     }
 
     open(){
-        if (this.isConnecting || this.isOpen || this._client || net.isIP(this._host) <= 0 || this._port < 0){
+        if (this.isConnecting || this.isOpen || this._client || !this._host || this._port < 0){
             this.emit('error', { code:FPConfig.ERROR_CODE.FPNN_EC_CORE_INVALID_CONNECTION, ex:'FPNN_EC_CORE_INVALID_CONNECTION' });
             return;
         }

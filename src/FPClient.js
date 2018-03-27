@@ -93,7 +93,7 @@ class FPClient{
         data.mtype = options.mtype !== undefined ? options.mtype : 1;
 
         data.method = options.method;
-        data.seq = ++this._seq;
+        data.seq = (options.seq === undefined) ? ++this._seq : options.seq;
         data.payload = options.payload;
 
         data = this._pkg.buildPkgData(data);
