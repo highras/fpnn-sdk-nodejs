@@ -8,14 +8,14 @@ const FPClient = require('../src/FPClient');
 
 let client = new FPClient({ host: '35.167.185.139', port: 13013, autoReconnect: true, connectionTimeout: 10 * 1000 });
 
-fs.readFile(path.resolve(__dirname, '../key/test-secp256k1-compressed-public.key'), (err, data) => {
+fs.readFile(path.resolve(__dirname, '../key/test-secp256k1-compressed-public.key'), function(err, data){
     if (err) throw err;
 
     client.connectCryptor(data, null, 128, false);
     // client.connect();
 });
 
-client.on('connect', () => {
+client.on('connect', function(){
     let options = {
         flag: 1,
         method: 'httpDemo',
@@ -27,12 +27,12 @@ client.on('connect', () => {
     //     payload: JSON.stringify({pid:10, sign:'', salt:1111111111111, from:122, to:123, mid:345, mtype:20, msg:'sss', attrs:''}),
     // };
 
-    client.sendQuest(options, (data) => {
+    client.sendQuest(options, function(data){
         console.log(data);
         // console.log(msgpack.decode(data.payload));
     }, 10 * 1000);
 });
 
-client.on('error', (err) => {
+client.on('error', function(err){
     console.error(err);
 });

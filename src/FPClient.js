@@ -17,19 +17,19 @@ class FPClient{
         this._conn = new FPSocket(options);
 
         let self = this; 
-        this._conn.on('connect', () => {
+        this._conn.on('connect', function(){
             onConnect.call(self);
         });
 
-        this._conn.on('close', () => {
+        this._conn.on('close', function(){
             onClose.call(self);
         });
 
-        this._conn.on('data', (chunk) => {
+        this._conn.on('data', function(chunk){
             onData.call(self, chunk);
         });
 
-        this._conn.on('error', (err) => {
+        this._conn.on('error', function(err){
             self.emit('error', err);
         });
 
@@ -149,8 +149,9 @@ function sendPubkey(){
             payload: msgpack.encode({ publicKey:this._cyr.pubKey, streamMode:this._cyr.streamMode, bits:this._cyr.strength })
         };
 
-        this.sendQuest(options, (data) => {
-            onPubkey.call(this, data); 
+        let self = this;
+        this.sendQuest(options, function(data){
+            onPubkey.call(self, data); 
         }, 10 * 1000);
 
         return;
@@ -166,7 +167,7 @@ function onPubkey(data){
 function onClose(){
     if (this._autoReconnect){
         let self = this;
-        setTimeout(() => {
+        setTimeout(function(){
             self.connect();
         }, FPConfig.SEND_TIMEOUT);
     }
@@ -227,7 +228,7 @@ function onData(chunk){
 
         if (this._pkg.isQuest(data)){
             let self = this;
-            this._psr.service(data, (payload, exception) => {
+            this._psr.service(data, function(payload, exception){
                 sendAnswer.call(self, data.flag, data.seq, payload, exception);
             });
         }

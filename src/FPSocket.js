@@ -50,23 +50,23 @@ class FPSocket{
         let self = this;
         this._client = new net.Socket();
 
-        this._client.on('connect', () => {
+        this._client.on('connect', function(){
             onConnect.call(self);
         });
 
-        this._client.on('close', (had_error) => {
+        this._client.on('close', function(had_error){
             onClose.call(self, had_error);
         });
 
-        this._client.on('error', (err) => {
+        this._client.on('error', function(err){
             onError.call(self, err);
         });
 
-        this._client.on('data', (chunk) => {
+        this._client.on('data', function(chunk){
             onData.call(self, chunk);
         });
 
-        this._client.on('timeout', () => {
+        this._client.on('timeout', function(){
             onTimeout.call(self);  
         });
 
