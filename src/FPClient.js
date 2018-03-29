@@ -235,5 +235,21 @@ function onData(chunk){
     }
 }
 
+function sendAnswer(flag, seq, payload, exception){
+    if (exception === undefined){
+        exception = false;
+    }
+
+    let options = {
+        flag: flag,
+        mtype: 2,
+        seq: seq,
+        ss: exception ? 1 : 0,
+        payload: payload,
+    };
+
+    this.sendQuest(options);
+}
+
 Object.setPrototypeOf(FPClient.prototype, Emitter.prototype);
 module.exports = FPClient;
