@@ -42,6 +42,8 @@ class FPClient{
         this._wpos = 0;
         this._peekData = null;
 
+        this._timeoutID = 0;
+
         this._buffer = Buffer.allocUnsafe(FPConfig.READ_BUFFER_LEN);
     }
 
@@ -157,17 +159,32 @@ function sendPubkey(){
         return;
     }
 
+    if (this._timeoutID){
+        clearTimeout(this._timeoutID);
+        this._timeoutID = 0;
+    }
+
     this.emit('connect');
 }
 
 function onPubkey(data){
+    if (this._timeoutID){
+        clearTimeout(this._timeoutID);
+        this._timeoutID = 0;
+    }
+
     this.emit('connect');
 }
 
 function onClose(){
+    if (this._timeoutID){
+        clearTimeout(this._timeoutID);
+        this._timeoutID = 0;
+    }
+
     if (this._autoReconnect){
         let self = this;
-        setTimeout(function(){
+        this._timeoutID = setTimeout(function(){
             self.connect();
         }, FPConfig.SEND_TIMEOUT);
     }

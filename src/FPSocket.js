@@ -16,6 +16,7 @@ class FPSocket{
 
         this._client = null;
         this._isConnect = false;
+        this._timeoutID = 0;
     }
 
     get host(){ 
@@ -66,11 +67,12 @@ class FPSocket{
             onData.call(self, chunk);
         });
 
-        this._client.on('timeout', function(){
-            onTimeout.call(self);  
-        });
+        this._timeoutID = setTimeout(function(){
+            if (self.isConnecting){
+                self.close({ code:FPConfig.ERROR_CODE.FPNN_EC_CORE_TIMEOUT, ex:'FPNN_EC_CORE_TIMEOUT' });
+            }
+        }, this._connectionTimeout);
 
-        this._client.setTimeout(this._connectionTimeout);
         this._client.connect(this._port, this._host);
     }
 
@@ -93,10 +95,21 @@ function onData(chunk){
 
 function onConnect(){
     this._isConnect = true;
+
+    if (this._timeoutID){
+        clearTimeout(this._timeoutID);
+        this._timeoutID = 0;
+    }
+
     this.emit('connect');
 }
 
 function onClose(had_error){
+    if (this._timeoutID){
+        clearTimeout(this._timeoutID);
+        this._timeoutID = 0;
+    }
+
     if (this._client){
         this._client.destroy();
         this._client = null;
@@ -112,10 +125,6 @@ function onClose(had_error){
 
 function onError(err){
     this.emit('error', err);
-}
-
-function onTimeout(){
-    this.close();
 }
 
 Object.setPrototypeOf(FPSocket.prototype, Emitter.prototype);
