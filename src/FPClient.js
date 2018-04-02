@@ -14,6 +14,16 @@ class FPClient{
     constructor(options){
         this._buffer = Buffer.allocUnsafe(16);
         this._autoReconnect = options ? options.autoReconnect : false;
+        this._connectionTimeout = options ? options.connectionTimeout : 30 * 1000;
+
+        if (this._connectionTimeout === undefined){
+            this._connectionTimeout = 30 * 1000;
+        }
+
+        if (options){
+            options.connectionTimeout = this._connectionTimeout;
+        }
+
         this._conn = new FPSocket(options);
 
         let self = this; 
@@ -42,7 +52,7 @@ class FPClient{
         this._wpos = 0;
         this._peekData = null;
 
-        this._timeoutID = 0;
+        this._intervalID = 0;
 
         this._buffer = Buffer.allocUnsafe(FPConfig.READ_BUFFER_LEN);
     }
@@ -67,7 +77,6 @@ class FPClient{
 
     connect(){
         if (this.hasConnect){
-            this.close();
             return;
         }
 
@@ -76,7 +85,7 @@ class FPClient{
     }
 
     close(){
-        if (this.hasConnect){
+        if (this._conn){
             this._conn.close();
         } 
     }
@@ -159,36 +168,24 @@ function sendPubkey(){
         return;
     }
 
-    if (this._timeoutID){
-        clearTimeout(this._timeoutID);
-        this._timeoutID = 0;
+    if (this._intervalID){
+        clearInterval(this._intervalID);
+        this._intervalID = 0;
     }
 
     this.emit('connect');
 }
 
 function onPubkey(data){
-    if (this._timeoutID){
-        clearTimeout(this._timeoutID);
-        this._timeoutID = 0;
+    if (this._intervalID){
+        clearInterval(this._intervalID);
+        this._intervalID = 0;
     }
 
     this.emit('connect');
 }
 
 function onClose(){
-    if (this._timeoutID){
-        clearTimeout(this._timeoutID);
-        this._timeoutID = 0;
-    }
-
-    if (this._autoReconnect){
-        let self = this;
-        this._timeoutID = setTimeout(function(){
-            self.connect();
-        }, FPConfig.SEND_TIMEOUT);
-    }
-
     this._seq = 0;
     this._wpos = 0;
     this._peekData = null;
@@ -197,6 +194,22 @@ function onClose(){
     this._cbs.removeCb();
 
     this.emit('close');
+
+    if (this._autoReconnect){
+        reConnect.call(this);
+    }
+}
+
+function reConnect(){
+    if (this._intervalID){
+        clearInterval(this._intervalID);
+        this._intervalID = 0;
+    }
+
+    let self = this;
+    this._intervalID = setInterval(function(){
+        self.connect();
+    }, this._connectionTimeout);
 }
 
 function onData(chunk){

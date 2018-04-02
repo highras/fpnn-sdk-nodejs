@@ -10,10 +10,6 @@ class FPSocket{
         this._port = options ? options.port : 0;
         this._connectionTimeout = options ? options.connectionTimeout : 30 * 1000;
 
-        if (this._connectionTimeout === undefined){
-            this._connectionTimeout = 30 * 1000;
-        }
-
         this._client = null;
         this._isConnect = false;
         this._timeoutID = 0;
@@ -43,7 +39,7 @@ class FPSocket{
     }
 
     open(){
-        if (this.isConnecting || this.isOpen || this._client || !this._host || this._port < 0){
+        if (this.isConnecting || this.isOpen || !this._host || this._port < 0){
             this.emit('error', { code:FPConfig.ERROR_CODE.FPNN_EC_CORE_INVALID_CONNECTION, ex:'FPNN_EC_CORE_INVALID_CONNECTION' });
             return;
         }
@@ -108,11 +104,6 @@ function onClose(had_error){
     if (this._timeoutID){
         clearTimeout(this._timeoutID);
         this._timeoutID = 0;
-    }
-
-    if (this._client){
-        this._client.destroy();
-        this._client = null;
     }
 
     if (had_error){

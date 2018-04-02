@@ -88,7 +88,7 @@ class FPConfig{
 	}
 
 	static get SEND_TIMEOUT(){
-		return 5000;
+		return 20 * 1000;
 	}
 	
 	static get CRYPTO_CURVES(){
