@@ -34,7 +34,6 @@ class FPSocket{
 
         if (this._client){
             this._client.destroy();
-            this._client = null;
         }
     }
 
