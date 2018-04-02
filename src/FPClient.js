@@ -67,7 +67,7 @@ class FPClient{
 
     connectCryptor(pemData, curveName, strength, streamMode){
         if (this.hasConnect || this._cyr.crypto){
-            this.emit('error', { code:FPConfig.ERROR_CODE.FPNN_EC_CORE_INVALID_CONNECTION, ex:'FPNN_EC_CORE_INVALID_CONNECTION' });
+            this.emit('error', new Error('has connected or enable crypto!'));
             return;
         }
 
@@ -92,7 +92,7 @@ class FPClient{
 
     sendQuest(options, callback, timeout){
         if (!this.isOpen){
-            this.emit('error', 'no connect')
+            this.emit('error', new Error('no connect'));
             return;
         }
 
@@ -118,7 +118,7 @@ class FPClient{
 
     sendNotify(options){
         if (!this.isOpen){
-            this.emit('error', 'no connect')
+            this.emit('error', new Error('no connect'));
             return;
         }
 
@@ -229,7 +229,7 @@ function onData(chunk){
         this._peekData = this._cyr.peekHead(this._buffer);
 
         if (!this._peekData){
-            this.conn.close({ code:FPConfig.ERROR_CODE.FPNN_EC_CORE_CONNECTION_CLOSED, ex:'FPNN_EC_CORE_CONNECTION_CLOSED' });
+            this.conn.close(new Error('worng package!'));
             return;
         }
     }
