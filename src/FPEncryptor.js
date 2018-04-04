@@ -25,9 +25,7 @@ class FPEncryptor{
             strength = 128;
         }
 
-        if (streamMode === undefined){
-            streamMode = false; 
-        }
+        streamMode = streamMode || false;
 
         this._streamMode = streamMode;
         this._strength = strength;

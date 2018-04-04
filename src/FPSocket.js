@@ -6,9 +6,9 @@ const FPConfig = require('./FPConfig');
 
 class FPSocket{
     constructor(options){
-        this._host = options ? options.host : null;
-        this._port = options ? options.port : 0;
-        this._connectionTimeout = options ? options.connectionTimeout : 30 * 1000;
+        this._host = options.host || null;
+        this._port = options.port || 0;
+        this._connectionTimeout = options.connectionTimeout || 30 * 1000;
 
         this._client = null;
         this._isConnect = false;

@@ -13,16 +13,8 @@ const FPProcessor = require('./FPProcessor');
 class FPClient{
     constructor(options){
         this._buffer = Buffer.allocUnsafe(16);
-        this._autoReconnect = options ? options.autoReconnect : false;
-        this._connectionTimeout = options ? options.connectionTimeout : 30 * 1000;
-
-        if (this._connectionTimeout === undefined){
-            this._connectionTimeout = 30 * 1000;
-        }
-
-        if (options){
-            options.connectionTimeout = this._connectionTimeout;
-        }
+        this._autoReconnect = options.autoReconnect || false;
+        this._connectionTimeout = options.connectionTimeout || 30 * 1000;
 
         this._conn = new FPSocket(options);
 
@@ -98,9 +90,9 @@ class FPClient{
 
         let data = {};
 
-        data.magic = options.magic !== undefined ? options.magic : FPConfig.TCP_MAGIC;
-        data.version = options.version !== undefined ? options.version : 1;
-        data.flag = options.flag !== undefined ? options.flag : 0;
+        data.magic = options.magic || FPConfig.TCP_MAGIC;
+        data.version = options.version || 1;
+        data.flag = options.flag || 0;
         data.mtype = options.mtype !== undefined ? options.mtype : 1;
 
         data.method = options.method;
@@ -124,10 +116,10 @@ class FPClient{
 
         let data = {};
 
-        data.magic = options.magic !== undefined ? options.magic : FPConfig.TCP_MAGIC;
-        data.version = options.version !== undefined ? options.version : 1;
-        data.flag = options.flag !== undefined ? options.flag : 0;
-        data.mtype = options.mtype !== undefined ? options.mtype : 0;
+        data.magic = options.magic || FPConfig.TCP_MAGIC;
+        data.version = options.version || 1;
+        data.flag = options.flag || 0;
+        data.mtype = options.mtype || 0;
 
         data.method = options.method;
         data.payload = options.payload;
@@ -266,9 +258,7 @@ function onData(chunk){
 }
 
 function sendAnswer(flag, seq, payload, exception){
-    if (exception === undefined){
-        exception = false;
-    }
+    exception = exception || false;
 
     let options = {
         flag: flag,
