@@ -193,8 +193,7 @@ function onClose(){
 
 function reConnect(){
     if (this._intervalID){
-        clearInterval(this._intervalID);
-        this._intervalID = 0;
+        return;
     }
 
     let self = this;
