@@ -45,8 +45,7 @@ const TCP_MAGIC = Buffer.from('FPNN');
 const HTTP_MAGIC = Buffer.from('POST');
 
 const CRYPTO_CURVES = [
-	'secp256k1',
-	'secp224r1'
+	'secp256k1'
 ];
 
 const CRYPTO_ALGORITHM = [

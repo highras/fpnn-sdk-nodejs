@@ -11,8 +11,14 @@ let client = new FPClient({ host: '35.167.185.139', port: 13013, autoReconnect: 
 fs.readFile(path.resolve(__dirname, '../key/test-secp256k1-compressed-public.key'), function(err, data){
     if (err) throw err;
 
-    client.connectCryptor(data, null, 128, false);
-    // client.connect();
+    client.encryptor('secp256k1', data, false, 128);
+    client.connect(function(fpEncryptor){
+        return msgpack.encode({ 
+            publicKey:fpEncryptor.pubKey, 
+            streamMode:fpEncryptor.streamMode, 
+            bits:fpEncryptor.strength 
+        })
+    });
 });
 
 client.on('connect', function(){

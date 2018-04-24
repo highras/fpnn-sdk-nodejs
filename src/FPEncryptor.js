@@ -8,29 +8,45 @@ class FPEncryptor{
         this._pubKey = null;
         this._iv = null;
         this._key = null;
-        this._strength = null;
-        this._streamMode = false;
         this._crypto = false;
         this._cryptoed = false;
+
+        this._curve = FPConfig.CRYPTO_CURVES[0];
+        this._peerPublicKey = null;
+        this._streamMode = false;
+        this._strength = 128;
 
         this._pkg = fppkg;
     }
 
-    encryptor(pemData, curveName, strength, streamMode){
-        if (FPConfig.CRYPTO_CURVES.indexOf(curveName) == -1){
-            curveName = FPConfig.CRYPTO_CURVES[0];
+    set curve(value){
+        if (FPConfig.CRYPTO_CURVES.indexOf(value) != -1){
+            this._curve = value;
+        }
+    }
+
+    set peerPublicKey(value){
+        this._peerPublicKey = value;
+    }
+
+    set streamMode(value){
+        this._streamMode = value || false;
+    }
+
+    set strength(value){
+        if (value != 128 && value != 256){
+            value = 128;
         }
 
-        if (strength != 128 && strength != 256){
-            strength = 128;
-        }
+        this._strength = value;
+    }
 
-        streamMode = streamMode || false;
+    clear(){
+        this._cryptoed = false;
+    }
 
-        this._streamMode = streamMode;
-        this._strength = strength;
-
-        let ecdh = crypto.createECDH(curveName);
+    encryptor(){
+        let ecdh = crypto.createECDH(this._curve);
         let keys = ecdh.generateKeys();
 
         let pbuf = ecdh.getPublicKey();
@@ -38,7 +54,7 @@ class FPEncryptor{
 
         pbuf.copy(this._pubKey, 0, 1); 
 
-        let secret = ecdh.computeSecret(pemData);
+        let secret = ecdh.computeSecret(this._peerPublicKey);
         this._iv = md5.call(this, secret);
 
         if (this._strength == 128){

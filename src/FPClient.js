@@ -1,7 +1,6 @@
 'use strict'
 
 const Emitter = require('events').EventEmitter;
-const msgpack = require("msgpack-lite");
 
 const FPConfig = require('./FPConfig');
 const FPSocket = require('./FPSocket');
@@ -44,6 +43,7 @@ class FPClient{
         this._peekData = null;
 
         this._intervalID = 0;
+        this._keyFn = null;
 
         this._buffer = Buffer.allocUnsafe(FPConfig.READ_BUFFER_LEN);
     }
@@ -56,22 +56,40 @@ class FPClient{
         return this._psr = value;
     }
 
-    connectCryptor(pemData, curveName, strength, streamMode){
-        if (this.hasConnect || this._cyr.crypto){
+    encryptor(curve, peerPublicKey, streamMode, strength){
+        if (curve != undefined){
+            this._cyr.curve = curve;
+        }
+
+        if (peerPublicKey != undefined){
+            this._cyr.peerPublicKey = peerPublicKey;
+        }
+
+        if (streamMode != undefined){
+            this._cyr.streamMode = streamMode;
+        }
+
+        if (strength != undefined){
+            this._cyr.strength = strength;
+        }
+
+        if (this.hasConnect || this._cyr.cryptoed){
             this.emit('error', new Error('has connected or enable crypto!'));
             return;
         }
 
-        this._cyr.encryptor(pemData, curveName, strength, streamMode);
-        this.connect();
+        this._cyr.encryptor();
     }
 
-    connect(){
+    connect(keyFn){
         if (this.hasConnect){
             return;
         }
 
-        this._cyr.cryptoed = false;
+        if (keyFn != undefined){
+            this._keyFn = keyFn;
+        }
+
         this._conn.open();
     }
 
@@ -148,7 +166,7 @@ function sendPubkey(){
         let options = {
             flag: 1,
             method: '*key',
-            payload: msgpack.encode({ publicKey:this._cyr.pubKey, streamMode:this._cyr.streamMode, bits:this._cyr.strength })
+            payload: this._keyFn(this._cyr)
         };
 
         let self = this;
@@ -168,6 +186,11 @@ function sendPubkey(){
 }
 
 function onPubkey(data){
+    if (data instanceof Error){
+        this.emit('error', data);
+        return;
+    }
+
     if (this._intervalID){
         clearInterval(this._intervalID);
         this._intervalID = 0;
@@ -183,6 +206,7 @@ function onClose(){
 
     this._buffer = Buffer.allocUnsafe(FPConfig.READ_BUFFER_LEN);
     this._cbs.removeCb();
+    this._cyr.clear();
 
     this.emit('close');
 
@@ -198,6 +222,13 @@ function reConnect(){
 
     let self = this;
     this._intervalID = setInterval(function(){
+
+        if (self._cyr.crypto){
+            self.encryptor();
+            self.connect(self._keyFn);
+            return
+        }
+
         self.connect();
     }, this._connectionTimeout);
 }
