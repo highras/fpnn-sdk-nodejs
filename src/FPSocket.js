@@ -4,41 +4,65 @@ const Emitter = require('events').EventEmitter;
 const net = require('net');
 const FPConfig = require('./FPConfig');
 
-class FPSocket{
-    constructor(options){
+class FPSocket {
+
+    constructor(options) {
+
         this._host = options.host || null;
         this._port = options.port || 0;
         this._connectionTimeout = options.connectionTimeout || 30 * 1000;
 
         this._client = null;
         this._isConnect = false;
+        this._writeID = 0;
         this._timeoutID = 0;
+        this._queue = [];
     }
 
-    get host(){ 
+    get host() {  
+
         return this._host; 
     }
 
-    get port(){ 
+    get port() { 
+
         return this._port; 
     }
 
-    write(buf){
-        if (buf) this._client.write(buf);
+    write(buf) {
+
+        if (buf) {
+
+            this._queue.push(buf);
+        } 
+
+        if (!this._writeID) {
+
+            let self = this;
+            this._writeID = setInterval(function () {
+    
+                writeSocket.call(self);
+            }, 0);
+        }
     }
 
-    close(err){
-        if (err){
+    close(err) {
+        
+        if (err) {
+
             this.emit('error', err);
         }
 
-        if (this._client){
+        if (this._client) {
+            
             this._client.destroy();
         }
     }
 
-    open(){
-        if (this.isConnecting || this.isOpen || !this._host || this._port < 0){
+    open() {
+         
+        if (this.isConnecting || this.isOpen || !this._host || this._port < 0) {
+            
             this.emit('error', new Error('has connected or worng endpoint!'));
             return;
         }
@@ -46,24 +70,30 @@ class FPSocket{
         let self = this;
         this._client = new net.Socket();
 
-        this._client.on('connect', function(){
+        this._client.on('connect', function() {
+
             onConnect.call(self);
         });
 
-        this._client.on('close', function(had_error){
+        this._client.on('close', function(had_error) {
+
             onClose.call(self, had_error);
         });
 
-        this._client.on('error', function(err){
+        this._client.on('error', function(err) {
+
             onError.call(self, err);
         });
 
-        this._client.on('data', function(chunk){
+        this._client.on('data', function(chunk) {
+
             onData.call(self, chunk);
         });
 
-        this._timeoutID = setTimeout(function(){
-            if (self.isConnecting){
+        this._timeoutID = setTimeout(function() {
+
+            if (self.isConnecting) {
+
                 self.close(new Error('connect timeout!'));
             }
         }, this._connectionTimeout);
@@ -71,12 +101,15 @@ class FPSocket{
         this._client.connect(this._port, this._host);
     }
 
-    get isOpen(){
+    get isOpen() {
+
         return this._isConnect;
     }
 
-    get isConnecting(){
-        if (this._client){
+    get isConnecting() {
+
+        if (this._client) {
+
             return this._client.connecting;
         }
 
@@ -84,14 +117,32 @@ class FPSocket{
     }
 }
 
-function onData(chunk){
+function writeSocket() {
+
+    while (this._queue.length) {
+
+        let buf = this._queue[0];
+        if (this._client.write(buf)) {
+
+            this._queue.shift();
+            continue;
+        }
+
+        return;
+    }
+}
+
+function onData(chunk) {
+
     this.emit('data', chunk);
 }
 
-function onConnect(){
+function onConnect() {
+
     this._isConnect = true;
 
-    if (this._timeoutID){
+    if (this._timeoutID) {
+
         clearTimeout(this._timeoutID);
         this._timeoutID = 0;
     }
@@ -99,13 +150,22 @@ function onConnect(){
     this.emit('connect');
 }
 
-function onClose(had_error){
-    if (this._timeoutID){
+function onClose(had_error) {
+
+    if (this._writeID) {
+
+        clearInterval(this._writeID);
+        this._writeID = 0;
+    }
+
+    if (this._timeoutID) {
+
         clearTimeout(this._timeoutID);
         this._timeoutID = 0;
     }
 
-    if (had_error){
+    if (had_error) {
+
         this.emit('error', had_error);
     }
 
@@ -113,7 +173,8 @@ function onClose(had_error){
     this.emit('close');
 }
 
-function onError(err){
+function onError(err) {
+
     this.emit('error', err);
 }
 

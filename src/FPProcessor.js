@@ -2,11 +2,12 @@
 
 const Emitter = require('events').EventEmitter;
 
-class FPProcessor{
-    constructor(){
-    }
+class FPProcessor {
 
-    service(data, cb){
+    constructor() {}
+
+    service(data, cb) {
+
         this.emit(data.method, data.payload, cb);
     }
 }
