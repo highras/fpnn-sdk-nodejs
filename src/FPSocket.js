@@ -10,7 +10,7 @@ class FPSocket {
 
         this._host = options.host || null;
         this._port = options.port || 0;
-        this._connectionTimeout = options.connectionTimeout || 30 * 1000;
+        this._connectionTimeout = options.connectionTimeout || 10 * 1000;
 
         this._client = null;
         this._isConnect = false;
@@ -121,8 +121,7 @@ function writeSocket() {
 
     while (this._queue.length) {
 
-        let buf = this._queue[0];
-        if (this._client.write(buf)) {
+        if (this._client.write(this._queue[0])) {
 
             this._queue.shift();
             continue;

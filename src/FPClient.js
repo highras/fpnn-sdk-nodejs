@@ -14,7 +14,6 @@ class FPClient {
     constructor(options) {
 
         this._autoReconnect = options.autoReconnect || false;
-        this._connectionTimeout = options.connectionTimeout || 30 * 1000;
 
         this._conn = new FPSocket(options);
 
@@ -282,7 +281,7 @@ function reConnect() {
         }
 
         self.connect();
-    }, this._connectionTimeout);
+    }, 100);
 }
 
 function onData(chunk) {
