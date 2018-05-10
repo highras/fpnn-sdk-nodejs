@@ -48,7 +48,7 @@ class FPClient {
         this._peekData = null;
 
         this._readID = 0;
-        this._intervalID = 0;
+        this._reconnectID = 0;
         this._keyFn = null;
 
         this._buffer = Buffer.allocUnsafe(FPConfig.READ_BUFFER_LEN);
@@ -120,12 +120,6 @@ class FPClient {
 
     sendQuest(options, callback, timeout) {
 
-        if (!this.isOpen) {
-
-            this.emit('error', new Error('no connect'));
-            return;
-        }
-
         let data = {};
 
         data.magic = options.magic || FPConfig.TCP_MAGIC;
@@ -151,12 +145,6 @@ class FPClient {
     }
 
     sendNotify(options) {
-
-        if (!this.isOpen) {
-
-            this.emit('error', new Error('no connect'));
-            return;
-        }
 
         let data = {};
 
@@ -211,10 +199,10 @@ function sendPubkey() {
         return;
     }
 
-    if (this._intervalID) {
+    if (this._reconnectID) {
 
-        clearInterval(this._intervalID);
-        this._intervalID = 0;
+        clearTimeout(this._reconnectID);
+        this._reconnectID = 0;
     }
 
     this.emit('connect');
@@ -229,10 +217,10 @@ function onPubkey(data) {
         return;
     }
 
-    if (this._intervalID) {
+    if (this._reconnectID) {
 
-        clearInterval(this._intervalID);
-        this._intervalID = 0;
+        clearTimeout(this._reconnectID);
+        this._reconnectID = 0;
     }
 
     this.emit('connect');
@@ -246,32 +234,38 @@ function onClose() {
         this._readID = 0;
     }
 
+    if (this._reconnectID) {
+
+        clearTimeout(this._reconnectID);
+        this._reconnectID = 0;
+    }
+
     this._seq = 0;
     this._wpos = 0;
     this._peekData = null;
 
     this._buffer = Buffer.allocUnsafe(FPConfig.READ_BUFFER_LEN);
-    this._cbs.removeCb();
     this._cyr.clear();
 
     this.emit('close');
-
-    if (this._autoReconnect) {
-
-        reConnect.call(this);
-    }
+    reConnect.call(this);
 }
 
 function reConnect() {
 
-    if (this._intervalID) {
+    if (!this._autoReconnect) {
+
+        return;
+    }
+
+    if (this._reconnectID) {
 
         return;
     }
 
     let self = this;
 
-    this._intervalID = setInterval(function() {
+    this._reconnectID = setTimeout(function() {
 
         if (self._cyr.crypto) {
 

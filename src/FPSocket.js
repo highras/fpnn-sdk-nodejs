@@ -90,6 +90,11 @@ class FPSocket {
             onData.call(self, chunk);
         });
 
+        if (this._timeoutID) {
+
+            clearTimeout(this._timeoutID);
+        }
+
         this._timeoutID = setTimeout(function() {
 
             if (self.isConnecting) {
@@ -118,6 +123,11 @@ class FPSocket {
 }
 
 function writeSocket() {
+
+    if (!this.isOpen) {
+
+        return;
+    }
 
     while (this._queue.length) {
 
