@@ -79,8 +79,10 @@ function cbExec(key, data) {
 
     if (this._cbMap.hasOwnProperty(key)) {
 
-        this._cbMap[key](data);
+        let cb = this._cbMap[key];
         cbRemove.call(this, key);
+
+        cb && cb(data);
     }
 }
 
