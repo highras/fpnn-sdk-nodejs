@@ -118,6 +118,19 @@ class FPClient {
         } 
     }
 
+    destroy() {
+
+        this._autoReconnect = false;
+
+        this.removeAllListeners();
+        this._cbs.removeCb();
+
+        this._psr.destroy();
+        this._conn.destroy();
+        
+        onClose.call(this);
+    }
+
     sendQuest(options, callback, timeout) {
 
         let data = {};

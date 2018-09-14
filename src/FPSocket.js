@@ -120,6 +120,14 @@ class FPSocket {
 
         return false;
     }
+
+    destroy() {
+
+        this.removeAllListeners();
+        this.close();
+
+        onClose.call(this);
+    }
 }
 
 function writeSocket() {

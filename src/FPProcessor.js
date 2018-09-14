@@ -10,6 +10,11 @@ class FPProcessor {
 
         this.emit(data.method, data.payload, cb);
     }
+
+    destroy() {
+
+        this.removeAllListeners();
+    }
 }
 
 Object.setPrototypeOf(FPProcessor.prototype, Emitter.prototype);
