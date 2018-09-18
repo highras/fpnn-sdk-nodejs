@@ -123,7 +123,6 @@ class FPClient {
         this._autoReconnect = false;
 
         this.removeAllListeners();
-        this._cbs.removeCb();
 
         this._psr.destroy();
         this._conn.destroy();
@@ -258,6 +257,8 @@ function onClose() {
     this._peekData = null;
 
     this._buffer = Buffer.allocUnsafe(FPConfig.READ_BUFFER_LEN);
+    
+    this._cbs.removeCb();
     this._cyr.clear();
 
     this.emit('close');

@@ -2,7 +2,7 @@
     "name": "fpnn-nodejs-sdk",
     "version": "1.0.0",
     "description": "Node.js SDK with FPNN",
-    "main": "src/FPClient.js",
+    "main": "src/fpnn/FPClient.js",
     "scripts": {
         "test": "node test/test-fpnn.js"
     },

@@ -4,7 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const msgpack = require("msgpack-lite");
 
-const FPClient = require('../src/FPClient');
+const FPClient = require('../src/fpnn/FPClient');
 
 let client = new FPClient({ host: '35.167.185.139', port: 13013, autoReconnect: true, connectionTimeout: 10 * 1000 });
 
