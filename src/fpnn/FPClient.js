@@ -13,7 +13,7 @@ class FPClient {
 
     constructor(options) {
 
-        this._autoReconnect = options.autoReconnect || false;
+        this._autoReconnect = options.autoReconnect ? true : false;
 
         this._conn = new FPSocket(options);
 
@@ -47,8 +47,8 @@ class FPClient {
         this._wpos = 0;
         this._peekData = null;
 
-        this._readID = 0;
-        this._reconnectID = 0;
+        this._readInterval = 0;
+        this._reconnectTimeout = 0;
         this._keyFn = null;
 
         this._buffer = Buffer.allocUnsafe(FPConfig.READ_BUFFER_LEN);
@@ -121,7 +121,6 @@ class FPClient {
     destroy() {
 
         this._autoReconnect = false;
-
         this.removeAllListeners();
 
         this._psr.destroy();
@@ -211,10 +210,10 @@ function sendPubkey() {
         return;
     }
 
-    if (this._reconnectID) {
+    if (this._reconnectTimeout) {
 
-        clearTimeout(this._reconnectID);
-        this._reconnectID = 0;
+        clearTimeout(this._reconnectTimeout);
+        this._reconnectTimeout = 0;
     }
 
     this.emit('connect');
@@ -229,10 +228,10 @@ function onPubkey(data) {
         return;
     }
 
-    if (this._reconnectID) {
+    if (this._reconnectTimeout) {
 
-        clearTimeout(this._reconnectID);
-        this._reconnectID = 0;
+        clearTimeout(this._reconnectTimeout);
+        this._reconnectTimeout = 0;
     }
 
     this.emit('connect');
@@ -240,16 +239,16 @@ function onPubkey(data) {
 
 function onClose() {
 
-    if (this._readID) {
+    if (this._readInterval) {
 
-        clearInterval(this._readID);
-        this._readID = 0;
+        clearInterval(this._readInterval);
+        this._readInterval = 0;
     }
 
-    if (this._reconnectID) {
+    if (this._reconnectTimeout) {
 
-        clearTimeout(this._reconnectID);
-        this._reconnectID = 0;
+        clearTimeout(this._reconnectTimeout);
+        this._reconnectTimeout = 0;
     }
 
     this._seq = 0;
@@ -272,14 +271,14 @@ function reConnect() {
         return;
     }
 
-    if (this._reconnectID) {
+    if (this._reconnectTimeout) {
 
         return;
     }
 
     let self = this;
 
-    this._reconnectID = setTimeout(function() {
+    this._reconnectTimeout = setTimeout(function() {
 
         if (self._cyr.crypto) {
 
@@ -303,10 +302,10 @@ function onData(chunk) {
 
     this._wpos += chunk.copy(this._buffer, this._wpos, 0);
 
-    if (!this._readID) {
+    if (!this._readInterval) {
 
         let self = this;
-        this._readID = setInterval(function () {
+        this._readInterval = setInterval(function () {
 
             readPeekData.call(self);
         }, 0);

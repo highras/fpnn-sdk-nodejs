@@ -10,12 +10,11 @@ class FPSocket {
 
         this._host = options.host || null;
         this._port = options.port || 0;
-        this._connectionTimeout = options.connectionTimeout || 10 * 1000;
+        this._timeout = options.connectionTimeout || 10 * 1000;
 
         this._client = null;
         this._isConnect = false;
-        this._writeID = 0;
-        this._timeoutID = 0;
+        this._connectTimeout = 0;
         this._queue = [];
     }
 
@@ -31,19 +30,12 @@ class FPSocket {
 
     write(buf) {
 
-        if (buf) {
+        if (buf && buf.length) {
 
             this._queue.push(buf);
-        } 
-
-        if (!this._writeID) {
-
-            let self = this;
-            this._writeID = setInterval(function () {
-    
-                writeSocket.call(self);
-            }, 0);
         }
+
+        writeSocket.call(this);
     }
 
     close(err) {
@@ -90,18 +82,31 @@ class FPSocket {
             onData.call(self, chunk);
         });
 
-        if (this._timeoutID) {
+        if (this._connectTimeout) {
 
-            clearTimeout(this._timeoutID);
+            clearTimeout(this._connectTimeout);
+            this._connectTimeout = 0;
         }
 
-        this._timeoutID = setTimeout(function() {
+        this._connectTimeout = setTimeout(function() {
+
+            let err = new Error('connect timeout!');
+
+            if (self.isOpen) {
+
+                self.close(err);
+                return;
+            }
 
             if (self.isConnecting) {
 
-                self.close(new Error('connect timeout!'));
-            }
-        }, this._connectionTimeout);
+                self.close(err);
+                onClose.call(self, err);
+                return;
+            } 
+
+            onClose.call(self, err);
+        }, this._timeout);
 
         this._client.connect(this._port, this._host);
     }
@@ -139,13 +144,13 @@ function writeSocket() {
 
     while (this._queue.length) {
 
-        if (this._client.write(this._queue[0])) {
+        let buf = this._queue.shift();
+        let success = this._client.write(buf);
 
-            this._queue.shift();
-            continue;
+        if (!success) {
+
+            return;
         }
-
-        return;
     }
 }
 
@@ -158,27 +163,22 @@ function onConnect() {
 
     this._isConnect = true;
 
-    if (this._timeoutID) {
+    if (this._connectTimeout) {
 
-        clearTimeout(this._timeoutID);
-        this._timeoutID = 0;
+        clearTimeout(this._connectTimeout);
+        this._connectTimeout = 0;
     }
 
+    writeSocket.call(this);
     this.emit('connect');
 }
 
 function onClose(had_error) {
 
-    if (this._writeID) {
+    if (this._connectTimeout) {
 
-        clearInterval(this._writeID);
-        this._writeID = 0;
-    }
-
-    if (this._timeoutID) {
-
-        clearTimeout(this._timeoutID);
-        this._timeoutID = 0;
+        clearTimeout(this._connectTimeout);
+        this._connectTimeout = 0;
     }
 
     if (had_error) {
@@ -186,7 +186,9 @@ function onClose(had_error) {
         this.emit('error', had_error);
     }
 
+    this._queue = [];
     this._isConnect = false;
+    
     this.emit('close');
 }
 
