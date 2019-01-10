@@ -13,7 +13,7 @@ class FPProcessor {
 
     destroy() {
 
-        this.removeAllListeners();
+        // this.removeAllListeners();
     }
 }
 
