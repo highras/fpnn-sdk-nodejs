@@ -1,112 +1,73 @@
 'use strict'
 
 const FPConfig = require('./FPConfig');
+const FPManager = require('./FPManager');
+const ErrorRecorder = require('./ErrorRecorder');
 
 class FPCallback {
 
     constructor() {
-
         this._cbMap = {};
         this._exMap = {};
-
-        checkExpire.call(this);
     }
 
-    addCb(key, cb, timeout) {
-
-        if (!this._cbMap.hasOwnProperty(key)) {
-
-            this._cbMap[key] = cb;
-        } 
-
-        if (!timeout) {
-
-            timeout = FPConfig.SEND_TIMEOUT;
-        }
-
-        this._exMap[key] = timeout + Date.now();
-    }
-
-    removeCb(key) {
-
-        if (key) {
-
-            delayRemove.call(this, key);
+    addCallback(key, cb, timeout) {
+        if (!key) {
+            ErrorRecorder.instance.recordError(new Error('callback key is null or empty'));
             return;
         }
 
-        for (let key in this._cbMap) {
+        if (!cb) {
+            ErrorRecorder.instance.recordError(new Error('callback is null'));
+            return;
+        }
 
-            delayExec.call(this, key, new Error('timeout with closed!'));
+        if (!this._cbMap.hasOwnProperty(key)) {
+            this._cbMap[key] = cb;
+        }
+
+        if (!this._exMap.hasOwnProperty(key)) {
+            let ts = (!timeout || timeout < 0) ? FPConfig.SEND_TIMEOUT : timeout;
+            this._exMap[key] = ts + Date.now();
         }
     }
 
-    execCb(key, data) {
-
-        delayExec.call(this, key, data);
+    removeCallback() {
+        this._cbMap = {};
+        this._exMap = {};
     }
-}
 
-function checkExpire() {
+    execCallback(key, data) {
+        if (!key) {
+            ErrorRecorder.instance.recordError(new Error('callback key is null or empty'));
+            return;
+        }
 
-    let self = this;
+        let self = this;
+        FPManager.instance.asyncTask(function(state) {
+            callbackExec.call(self, key, data);
+        }, null);
+    }
 
-    setInterval(function() {
-
-        for (let key in self._exMap) {
-
-            if (self._exMap[key] > Date.now()) {
-
+    onSecond(timestamp) {
+        for (let key in this._exMap) {
+            if (this._exMap[key] > timestamp) {
                 continue;
-            } 
-
-            delayExec.call(self, key, new Error('timeout with expire'));
+            }
+            this.execCallback(key, new Error('timeout with expire'));
         }
-    }, FPConfig.CHECK_CBS_INTERVAL);
+    }
 }
 
-function delayExec(key, data) {
-
-    let self = this;
-
-    setTimeout(function() {
-
-        cbExec.call(self, key, data);
-    }, 0);
-}
-
-function cbExec(key, data) {
-
+function callbackExec(key, data) {
     if (this._cbMap.hasOwnProperty(key)) {
-
         let cb = this._cbMap[key];
-        cbRemove.call(this, key);
-
+        delete this._cbMap[key];
+        if (this._exMap.hasOwnProperty(key)) {
+            delete this._exMap[key];
+        }
         cb && cb(data);
     }
-}
-
-function delayRemove(key) {
-
-    let self = this;
-
-    setTimeout(function() {
-
-        cbRemove.call(self, key);
-    }, 0);
-}
-
-function cbRemove(key) {
-
-    if (this._cbMap.hasOwnProperty(key)) {
-
-        delete this._cbMap[key];
-    }
-
-    if (this._exMap.hasOwnProperty(key)) {
-
-        delete this._exMap[key];
-    } 
 }
 
 module.exports = FPCallback

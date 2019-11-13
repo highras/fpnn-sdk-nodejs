@@ -1,37 +1,33 @@
 'use strict'
 
-const path = require('path');
 const fs = require('fs');
+const path = require('path');
 const msgpack = require("msgpack-lite");
-
 const FPClient = require('../src/fpnn/FPClient');
 
-let client = new FPClient({ host: '35.167.185.139', port: 13013, autoReconnect: true, connectionTimeout: 10 * 1000 });
-
-fs.readFile(path.resolve(__dirname, '../key/test-secp256k1-compressed-public.key'), function(err, data) {
-
-    if (err) {
-
-        throw err;
-    }
-
-    client.encryptor('secp256k1', data, false, 128);
-    client.connect(function(fpEncryptor) {
-
-        return msgpack.encode({ 
-            publicKey:fpEncryptor.pubKey, 
-            streamMode:fpEncryptor.streamMode, 
-            bits:fpEncryptor.strength 
-        });
-    });
-});
-
-client.on('connect', function() {
+let onError = function (err) {
+    console.error(err);
+}
+let onClose = function (err) {
+    console.log('close!');
+}
+let onConnect = function () {
+    console.log('connect!');
 
     let options = {
         flag: 1,
         method: 'httpDemo',
-        payload: msgpack.encode({pid:10, sign:'', salt:1111111111111, from:122, to:123, mid:345, mtype:20, msg:'sss', attrs:''}),
+        payload: msgpack.encode({
+            pid: 10,
+            sign: '',
+            salt: 1111111111111,
+            from: 122,
+            to: 123,
+            mid: 345,
+            mtype: 20,
+            msg: 'sss',
+            attrs: ''
+        }),
     };
 
     // let options = {
@@ -39,14 +35,34 @@ client.on('connect', function() {
     //     payload: JSON.stringify({pid:10, sign:'', salt:1111111111111, from:122, to:123, mid:345, mtype:20, msg:'sss', attrs:''}),
     // };
 
-    client.sendQuest(options, function(data) {
-
-        console.log(data);
-        // console.log(msgpack.decode(data.payload));
+    client.sendQuest(options, function (data) {
+        // console.log('callback:', data);
+        console.log('payload:', msgpack.decode(data.payload));
     }, 10 * 1000);
-});
+}
 
-client.on('error', function(err) {
+let client = new FPClient({
+        host: '52.83.245.22',
+        port: 13013,
+        connectionTimeout: 10 * 1000,
+        onConnect: onConnect,
+        onClose: onClose,
+        onError: onError
+    });
 
-    console.error(err);
+fs.readFile(path.resolve(__dirname, '../key/test-secp256k1-compressed-public.key-false'), function (err, data) {
+    if (err) {
+        // console.error(err);
+        client.connect();
+        return;
+    }
+
+    client.encryptor('secp256k1', data, false, 128);
+    client.connect(function (fpEncryptor) {
+        return msgpack.encode({
+            publicKey: fpEncryptor.pubKey,
+            streamMode: fpEncryptor.streamMode,
+            bits: fpEncryptor.strength
+        });
+    });
 });

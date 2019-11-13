@@ -1,21 +1,74 @@
 'use strict'
 
-const Emitter = require('events').EventEmitter;
+const FPManager = require('./FPManager');
+const ErrorRecorder = require('./ErrorRecorder');
 
 class FPProcessor {
+    constructor() {
+        this._processor = null;
+        this._destroyed = false;
+    }
 
-    constructor() {}
+    set processor(value) {
+        this._processor = value;
+    }
 
     service(data, cb) {
+        let method;
 
-        this.emit(data.method, data.payload, cb);
+        if (data) {
+            method = data.method;
+        }
+        if (!method) {
+            return;
+        }
+        if (this._destroyed) {
+            return;
+        }
+        if (!this._processor) {
+            this._processor = new BaseProcessor();
+        }
+        if (!(this._processor.hasPushService && this._processor.hasPushService(method))) {
+            if (method != 'ping') {
+                return;
+            }
+        }
+
+        let self = this;
+        FPManager.instance.asyncTask(function () {
+            if (self._processor) {
+                self._processor.service && self._processor.service(data, cb);
+            }
+        });
+    }
+
+    onSecond(timestamp) {
+        try {
+            if (this._processor) {
+                this._processor.onSecond && this._processor.onSecond(timestamp);
+            }
+        } catch (er) {
+            ErrorRecorder.instance.recordError(er);
+        }
     }
 
     destroy() {
-
-        // this.removeAllListeners();
+        this._destroyed = true;
     }
 }
 
-Object.setPrototypeOf(FPProcessor.prototype, Emitter.prototype);
+class BaseProcessor {
+    service(data, cb) {
+        // TODO
+        if (data.flag == 0) {}
+        if (data.flag == 1) {}
+    }
+
+    hasPushService(name) {
+        return false;
+    }
+
+    onSecond(timestamp) {}
+}
+
 module.exports = FPProcessor;

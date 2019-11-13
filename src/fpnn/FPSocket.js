@@ -1,201 +1,225 @@
 'use strict'
 
-const Emitter = require('events').EventEmitter;
 const net = require('net');
 const FPConfig = require('./FPConfig');
+const FPManager = require('./FPManager');
+const ErrorRecorder = require('./ErrorRecorder');
 
 class FPSocket {
-
     constructor(options) {
+        this._queue = [];
+        this._socket = null;
+        this._isIPv6 = false;
+        this._isConnected = false;
+        this._closeStatus = 0;
+        this._openTimestamp = 0;
+
+        this._socketConnect = options.onConnect || null;
+        this._socketClose = options.onClose || null;
+        this._socketError = options.onError || null;
+        this._socketRead = options.onRead || null;
 
         this._host = options.host || null;
         this._port = options.port || 0;
-        this._timeout = options.connectionTimeout || 10 * 1000;
-
-        this._client = null;
-        this._isConnect = false;
-        this._connectTimeout = 0;
-        this._queue = [];
-    }
-
-    get host() {  
-
-        return this._host; 
-    }
-
-    get port() { 
-
-        return this._port; 
-    }
-
-    write(buf) {
-
-        if (buf && buf.length) {
-
-            this._queue.push(buf);
-        }
-
-        writeSocket.call(this);
-    }
-
-    close(err) {
-        
-        if (err) {
-
-            this.emit('error', err);
-        }
-
-        if (this._client) {
-            
-            this._client.destroy();
-        }
+        this._timeout = options.connectionTimeout || 30 * 1000;
     }
 
     open() {
-         
-        if (this.isConnecting || this.isOpen || !this._host || this._port < 0) {
-            
-            this.emit('error', new Error('has connected or worng endpoint!'));
+        if (!this._host) {
+            onError.call(this, new Error('Cannot open null host'));
             return;
         }
+        if (!this._port || this._port < 0) {
+            onError.call(this, new Error('Cannot open without port'));
+            return;
+        }
+        if (this._socket) {
+            return;
+        }
+        if (this._openTimestamp > 0) {
+            return;
+        }
+        this._openTimestamp = FPManager.instance.milliTimestamp;
 
         let self = this;
-        this._client = new net.Socket();
+        FPManager.instance.asyncTask(function (state) {
+            asyncConnect.call(self);
+        }, null);
+    }
 
-        this._client.on('connect', function() {
-
-            onConnect.call(self);
-        });
-
-        this._client.on('close', function(had_error) {
-
-            onClose.call(self, had_error);
-        });
-
-        this._client.on('error', function(err) {
-
-            onError.call(self, err);
-        });
-
-        this._client.on('data', function(chunk) {
-
-            onData.call(self, chunk);
-        });
-
-        if (this._connectTimeout) {
-
-            clearTimeout(this._connectTimeout);
-            this._connectTimeout = 0;
-        }
-
-        this._connectTimeout = setTimeout(function() {
-
-            let err = new Error('connect timeout!');
-
-            if (self.isOpen) {
-
-                self.close(err);
-                return;
-            }
-
-            if (self.isConnecting) {
-
-                self.close(err);
-                onClose.call(self, err);
-                return;
-            } 
-
-            onClose.call(self, err);
-        }, this._timeout);
-
-        this._client.connect(this._port, this._host);
+    get isIPv6() {
+        return this._isIPv6;
     }
 
     get isOpen() {
-
-        return this._isConnect;
+        return this._isConnected;
     }
 
     get isConnecting() {
-
-        if (this._client) {
-
-            return this._client.connecting;
+        if (this._socket) {
+            return this._socket.connecting;
         }
-
         return false;
     }
 
-    destroy() {
+    onSecond(timestamp) {
+        if (this._timeout <= 0) {
+            return;
+        }
+        if (!this.isConnecting) {
+            return;
+        }
+        if (timestamp - this._openTimestamp >= this._timeout) {
+            this.close(new Error('Connect Timeout'));
+        }
+    }
 
-        this.removeAllListeners();
-        this.close();
+    close(err) {
+        if (this._closeStatus == 0) {
+            this._closeStatus = 1;
+            if (err) {
+                onError.call(this, err);
+            }
+            if (this.isConnecting) {
+                return;
+            }
 
-        onClose.call(this);
+            let self = this;
+            FPManager.instance.delayTask(200, function (state) {
+                delayClose.call(self, state);
+            }, null)
+        }
+        tryClose.call(this);
+    }
+
+    write(buf) {
+        if (!buf) {
+            return;
+        }
+        this._queue.push(buf);
+        writeSocket.call(this);
+    }
+
+    get host() {
+        return this._host;
+    }
+
+    get port() {
+        return this._port;
+    }
+
+    get timeout() {
+        return this._timeout;
     }
 }
 
+function asyncConnect() {
+    let self = this;
+    this._socket = new net.Socket();
+    this._socket.on('connect', function () {
+        onConnect.call(self);
+    });
+    this._socket.on('close', function () {
+        self.close();
+    });
+    this._socket.on('error', function (err) {
+        onError.call(self, err);
+    });
+    this._socket.on('data', function (chunk) {
+        onData.call(self, chunk);
+    });
+    this._socket.connect(this._port, this._host);
+}
+
+function delayClose(state) {
+    if (this._closeStatus != 3) {
+        socketClose.call(this);
+    }
+}
+
+function tryClose() {
+    if (this._closeStatus == 3) {
+        return;
+    }
+    try {
+        socketClose.call(this);
+    } catch (er) {
+        ErrorRecorder.instance.recordError(er);
+    }
+}
+
+function socketClose() {
+    if (this._socket && !this._socket.destroyed) {
+        this._socket.destroy();
+    }
+    this._closeStatus == 3;
+    onClose.call(this);
+}
+
 function writeSocket() {
-
     if (!this.isOpen) {
-
         return;
     }
 
-    while (this._queue.length) {
-
-        let buf = this._queue.shift();
-        let success = this._client.write(buf);
-
-        if (!success) {
-
-            return;
+    try {
+        while (this._queue.length) {
+            let buf = this._queue.shift();
+            if (!this._socket.write(buf)) {
+                return;
+            }
         }
+    } catch (er) {
+        ErrorRecorder.instance.recordError(er);
     }
 }
 
 function onData(chunk) {
-
-    this.emit('data', chunk);
+    try {
+        this._socketRead && this._socketRead(chunk);
+    } catch (er) {
+        ErrorRecorder.instance.recordError(er);
+    }
 }
 
 function onConnect() {
-
-    this._isConnect = true;
-
-    if (this._connectTimeout) {
-
-        clearTimeout(this._connectTimeout);
-        this._connectTimeout = 0;
+    if (this._closeStatus != 0) {
+        delayClose.call(this);
+        return;
     }
-
+    this._isConnected = true;
+    this._isIPv6 = (this._socket && this._socket.remoteFamily == 'IPv6');
     writeSocket.call(this);
-    this.emit('connect');
-}
 
-function onClose(had_error) {
-
-    if (this._connectTimeout) {
-
-        clearTimeout(this._connectTimeout);
-        this._connectTimeout = 0;
+    try {
+        this._socketConnect && this._socketConnect();
+    } catch (er) {
+        ErrorRecorder.instance.recordError(er);
     }
-
-    if (had_error) {
-
-        this.emit('error', had_error);
-    }
-
-    this._queue = [];
-    this._isConnect = false;
-    
-    this.emit('close');
 }
 
 function onError(err) {
-
-    this.emit('error', err);
+    try {
+        this._socketError && this._socketError(err);
+    } catch (er) {
+        ErrorRecorder.instance.recordError(er);
+    }
 }
 
-Object.setPrototypeOf(FPSocket.prototype, Emitter.prototype);
+function onClose() {
+    this._isConnected = false;
+    try {
+        this._socketClose && this._socketClose();
+    } catch (er) {
+        ErrorRecorder.instance.recordError(er);
+    }
+    destroy.call(this);
+}
+
+function destroy() {
+    this._socketConnect = null;
+    this._socketClose = null;
+    this._socketError = null;
+    this._socketRead = null;
+}
+
 module.exports = FPSocket;
