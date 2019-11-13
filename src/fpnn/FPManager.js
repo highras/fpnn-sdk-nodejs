@@ -11,9 +11,9 @@ class FPManager {
     }
 
     constructor() {
-        this._interval = new IntervalTask();
-        this._timer = new TimerTask();
-        this._service = new ServiceTask();
+        this._interval = new FPManager.IntervalTask();
+        this._timer = new FPManager.TimerTask();
+        this._service = new FPManager.ServiceTask();
     }
 
     addSecond(callback) {
@@ -64,9 +64,7 @@ class FPManager {
     }
 }
 
-module.exports = FPManager;
-
-class IntervalTask {
+FPManager.IntervalTask = class {
     constructor() {
         this._invalId = 0;
         this._secondCalls = [];
@@ -115,9 +113,9 @@ class IntervalTask {
             this._secondCalls.splice(index, 1);
         }
     }
-}
+};
 
-class ServiceTask {
+FPManager.ServiceTask = class {
     constructor() {
         this._queue = [];
         this._tmoutId = 0;
@@ -164,13 +162,13 @@ class ServiceTask {
             this._tmoutId = 0;
         }
     }
-}
+};
 
-class TimerTask {
+FPManager.TimerTask = class {
     constructor() {
         this._tmoutId = 0;
         this._task = null;
-        this._heap = new MinHeap(null, function (a, b) {
+        this._heap = new FPManager.MinHeap(null, function (a, b) {
                 return a.ts > b.ts;
             });
     }
@@ -211,7 +209,7 @@ class TimerTask {
         }
         this._task = task;
         this._tmoutId = setTimeout(function () {
-		        self._tmoutId = 0;
+                self._tmoutId = 0;
                 self.checkTask();
                 if (task) {
                     task.cb && task.cb(task.state);
@@ -225,9 +223,9 @@ class TimerTask {
             this._tmoutId = 0;
         }
     }
-}
+};
 
-class MinHeap {
+FPManager.MinHeap = class {
     constructor(max, compare) {
         this.tree = !max ? [0] : (max < 65536 ? (max < 256 ? new Uint8Array(max) : new Uint16Array(max)) : new Uint32Array(max));
         this.p = Number(!!(this.cmp = compare || function (a, b) {
@@ -283,4 +281,6 @@ class MinHeap {
         t[n] = b;
         return r;
     }
-}
+};
+
+module.exports = FPManager;

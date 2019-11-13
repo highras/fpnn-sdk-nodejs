@@ -26,7 +26,7 @@ class FPProcessor {
             return;
         }
         if (!this._processor) {
-            this._processor = new BaseProcessor();
+            this._processor = new FPProcessor.BaseProcessor();
         }
         if (!(this._processor.hasPushService && this._processor.hasPushService(method))) {
             if (method != 'ping') {
@@ -57,7 +57,7 @@ class FPProcessor {
     }
 }
 
-class BaseProcessor {
+FPProcessor.BaseProcessor = class {
     service(data, cb) {
         // TODO
         if (data.flag == 0) {}
@@ -69,6 +69,6 @@ class BaseProcessor {
     }
 
     onSecond(timestamp) {}
-}
+};
 
 module.exports = FPProcessor;

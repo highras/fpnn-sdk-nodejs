@@ -3,7 +3,7 @@
 class FPConfig {
 
     static get VERSION() {
-        return "1.2.0";
+        return '1.2.0';
     }
     static get ERROR_CODE() {
         return ERROR_CODE;

@@ -18,17 +18,17 @@ class ErrorRecorder {
 
     recordError(err) {
         if (!this._recorder) {
-            this._recorder = new BaseRecorder();
+            this._recorder = new ErrorRecorder.BaseRecorder();
         }
 
         this._recorder.recordError && this._recorder.recordError(err);
     }
 }
 
-class BaseRecorder {
+ErrorRecorder.BaseRecorder = class {
     recordError(err) {
         console.error(err);
     }
-}
+};
 
 module.exports = ErrorRecorder;

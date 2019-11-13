@@ -44,7 +44,7 @@ class FPClient {
         this._cbs = new FPCallback();
         this._cyr = new FPEncryptor(this._pkg);
         this._psr = new FPProcessor();
-        
+
         this._seq = 0;
         this._wpos = 0;
         this._peekData = null;
