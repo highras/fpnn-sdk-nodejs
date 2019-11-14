@@ -53,16 +53,18 @@ let client = new FPClient({
 fs.readFile(path.resolve(__dirname, '../key/test-secp256k1-compressed-public.key-false'), function (err, data) {
     if (err) {
         // console.error(err);
-        client.connect();
-        return;
     }
 
-    client.encryptor('secp256k1', data, false, 128);
-    client.connect(function (fpEncryptor) {
-        return msgpack.encode({
-            publicKey: fpEncryptor.pubKey,
-            streamMode: fpEncryptor.streamMode,
-            bits: fpEncryptor.strength
+    let res = client.encryptor('secp256k1', data, false, 128);
+    if (res) {
+        client.connect(function (fpEncryptor) {
+            return msgpack.encode({
+                publicKey: fpEncryptor.pubKey,
+                streamMode: fpEncryptor.streamMode,
+                bits: fpEncryptor.strength
+            });
         });
-    });
+    } else {
+        client.connect();
+    }
 });

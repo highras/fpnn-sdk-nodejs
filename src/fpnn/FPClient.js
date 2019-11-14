@@ -67,6 +67,13 @@ class FPClient {
     }
 
     encryptor(curve, peerPublicKey, streamMode, strength) {
+        if (this.hasConnect) {
+            ErrorRecorder.instance.recordError(new Error('has connected!'));
+            return false;
+        }
+        if (this._cyr.crypto) {
+            return true;
+        }
         if (curve != undefined) {
             this._cyr.curve = curve;
         }
@@ -79,11 +86,7 @@ class FPClient {
         if (strength != undefined) {
             this._cyr.strength = strength;
         }
-        if (this.hasConnect || this._cyr.cryptoed) {
-            ErrorRecorder.instance.recordError(new Error('has connected or enable crypto!'));
-            return;
-        }
-        this._cyr.encryptor();
+        return this._cyr.encryptor();
     }
 
     connect(keyFn) {

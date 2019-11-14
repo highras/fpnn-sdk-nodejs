@@ -2,6 +2,7 @@
 
 const crypto = require('crypto');
 const FPConfig = require('./FPConfig');
+const ErrorRecorder = require('./ErrorRecorder');
 
 class FPEncryptor {
 
@@ -9,7 +10,6 @@ class FPEncryptor {
         this._pubKey = null;
         this._iv = null;
         this._key = null;
-        this._crypto = false;
         this._cryptoed = false;
         this._curve = FPConfig.CRYPTO_CURVES[0];
         this._peerPublicKey = null;
@@ -40,32 +40,39 @@ class FPEncryptor {
     }
 
     clear() {
+        this._pubKey = null;
+        this._iv = null;
+        this._key = null;
         this._cryptoed = false;
     }
 
     encryptor() {
-        let ecdh = crypto.createECDH(this._curve);
-        let keys = ecdh.generateKeys();
-        let pbuf = ecdh.getPublicKey();
-        this._pubKey = Buffer.allocUnsafe(64);
-        pbuf.copy(this._pubKey, 0, 1);
-        let secret = ecdh.computeSecret(this._peerPublicKey);
-        this._iv = md5.call(this, secret);
+        try {
+            let ecdh = crypto.createECDH(this._curve);
+            let keys = ecdh.generateKeys();
+            let pbuf = ecdh.getPublicKey();
+            this._pubKey = Buffer.allocUnsafe(64);
+            pbuf.copy(this._pubKey, 0, 1);
+            let secret = ecdh.computeSecret(this._peerPublicKey);
+            this._iv = md5.call(this, secret);
 
-        if (this._strength == 128) {
-            this._key = Buffer.allocUnsafe(16);
-            secret.copy(this._key, 0, 0, 16);
-        }
-
-        if (this._strength == 256) {
-            if (secret.length == 32) {
-                this._key = Buffer.allocUnsafe(32);
-                secret.copy(this._key, 0, 0);
-            } else {
-                this.key = sha256.call(this, secret);
+            if (this._strength == 128) {
+                this._key = Buffer.allocUnsafe(16);
+                secret.copy(this._key, 0, 0, 16);
             }
+
+            if (this._strength == 256) {
+                if (secret.length == 32) {
+                    this._key = Buffer.allocUnsafe(32);
+                    secret.copy(this._key, 0, 0);
+                } else {
+                    this._key = sha256.call(this, secret);
+                }
+            }
+        } catch (er) {
+            ErrorRecorder.instance.recordError(er);
         }
-        this._crypto = true;
+        return this.crypto;
     }
 
     get pubKey() {
@@ -89,7 +96,16 @@ class FPEncryptor {
     }
 
     get crypto() {
-        return this._crypto;
+        if (!this._pubKey) {
+            return false;
+        }
+        if (!this._key) {
+            return false;
+        }
+        if (!this._iv) {
+            return false;
+        }
+        return true;
     }
 
     get cryptoed() {
