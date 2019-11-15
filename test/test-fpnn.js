@@ -39,6 +39,14 @@ let onConnect = function () {
         // console.log('callback:', data);
         console.log('payload:', msgpack.decode(data.payload));
     }, 10 * 1000);
+
+    setTimeout(function () {
+        client.sendQuest(options, function (data) {
+            // console.log('callback:', data);
+            console.log('payload:', msgpack.decode(data.payload));
+        }, 10 * 1000);
+    }, 1000);
+
 }
 
 let client = new FPClient({
@@ -50,7 +58,7 @@ let client = new FPClient({
         onError: onError
     });
 
-fs.readFile(path.resolve(__dirname, '../key/test-secp256k1-compressed-public.key-false'), function (err, data) {
+fs.readFile(path.resolve(__dirname, '../key/test-secp256k1-compressed-public.key'), function (err, data) {
     if (err) {
         // console.error(err);
     }
