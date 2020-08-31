@@ -3,7 +3,7 @@
 class FPConfig {
 
     static get VERSION() {
-        return '1.2.0';
+        return '2.0.0';
     }
     static get ERROR_CODE() {
         return ERROR_CODE;
@@ -75,6 +75,7 @@ const ERROR_CODE = {
     FPNN_EC_PROTO_PROTO_TYPE: 10008, // 协议类型错误
     FPNN_EC_PROTO_KEY_NOT_FOUND: 10009, // 数据包错误
     FPNN_EC_PROTO_TYPE_CONVERT: 10010, // 数据包转换错误
+    FPNN_EC_PROTO_FILE_SIGN: 10011,
 
     FPNN_EC_CORE_UNKNOWN_ERROR: 20001, // 未知错误（业务流程异常中断）
     FPNN_EC_CORE_CONNECTION_CLOSED: 20002, // 链接已关闭
@@ -89,5 +90,8 @@ const ERROR_CODE = {
     FPNN_EC_CORE_WORK_QUEUE_FULL: 20011, // 任务队列满
     FPNN_EC_CORE_INVALID_CONNECTION: 20012, // 无效的链接
     FPNN_EC_CORE_FORBIDDEN: 20013, // 禁止操作
-    FPNN_EC_CORE_SERVER_STOPPING: 20014 // 服务器即将停止
+    FPNN_EC_CORE_SERVER_STOPPING: 20014, // 服务器即将停止
+
+	FPNN_EC_ZIP_COMPRESS: 30001,
+	FPNN_EC_ZIP_DECOMPRESS: 30002
 };

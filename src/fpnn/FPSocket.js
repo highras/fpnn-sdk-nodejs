@@ -26,11 +26,11 @@ class FPSocket {
 
     open() {
         if (!this._host) {
-            onError.call(this, new Error('Cannot open null host'));
+            onError.call(this, new FPError('Cannot open null host', FPConfig.ERROR_CODE.FPNN_EC_CORE_UNKNOWN_ERROR));
             return;
         }
         if (!this._port || this._port < 0) {
-            onError.call(this, new Error('Cannot open without port'));
+            onError.call(this, new FPError('Cannot open without port', FPConfig.ERROR_CODE.FPNN_EC_CORE_UNKNOWN_ERROR));
             return;
         }
         if (this._socket) {
@@ -70,7 +70,7 @@ class FPSocket {
             return;
         }
         if (timestamp - this._openTimestamp >= this._timeout) {
-            this.close(new Error('Connect Timeout'));
+            this.close(new FPError('Connect Timeout', FPConfig.ERROR_CODE.FPNN_EC_CORE_TIMEOUT));
         }
     }
 

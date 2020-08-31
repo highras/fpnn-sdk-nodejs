@@ -13,12 +13,12 @@ class FPCallback {
 
     addCallback(key, cb, timeout) {
         if (!key) {
-            ErrorRecorder.instance.recordError(new Error('callback key is null or empty'));
+            ErrorRecorder.instance.recordError(new FPError('callback key is null or empty', FPConfig.ERROR_CODE.FPNN_EC_CORE_FORBIDDEN));
             return;
         }
 
         if (!cb) {
-            ErrorRecorder.instance.recordError(new Error('callback is null'));
+            ErrorRecorder.instance.recordError(new FPError('callback is null', FPConfig.ERROR_CODE.FPNN_EC_CORE_FORBIDDEN));
             return;
         }
 
@@ -39,7 +39,7 @@ class FPCallback {
 
     execCallback(key, data) {
         if (!key) {
-            ErrorRecorder.instance.recordError(new Error('callback key is null or empty'));
+            ErrorRecorder.instance.recordError(new FPError('callback key is null or empty', FPConfig.ERROR_CODE.FPNN_EC_CORE_FORBIDDEN));
             return;
         }
 
@@ -54,7 +54,7 @@ class FPCallback {
             if (this._exMap[key] > timestamp) {
                 continue;
             }
-            this.execCallback(key, new Error('timeout with expire'));
+            this.execCallback(key, new FPError('timeout with expire', FPConfig.ERROR_CODE.FPNN_EC_CORE_TIMEOUT));
         }
     }
 }

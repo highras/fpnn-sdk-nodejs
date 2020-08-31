@@ -1,6 +1,7 @@
 'use strict'
 
 const crypto = require('crypto');
+const FPConfig = require('./FPConfig');
 
 class FPManager {
     static get instance() {
@@ -20,7 +21,7 @@ class FPManager {
             return;
         }
         if (this._secondCalls.length >= 500) {
-            ErrorRecorder.recordError(new Error('Second Calls Limit!'));
+            ErrorRecorder.recordError(new FPError('Second Calls Limit!', FPConfig.ERROR_CODE.FPNN_EC_PROTO_UNKNOWN_ERROR));
             return;
         }
         this._secondCalls.push(callback);

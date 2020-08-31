@@ -68,7 +68,7 @@ class FPClient {
 
     encryptor(curve, peerPublicKey, streamMode, strength) {
         if (this.hasConnect) {
-            ErrorRecorder.instance.recordError(new Error('has connected!'));
+            ErrorRecorder.instance.recordError(new FPError('has connected!', FPConfig.ERROR_CODE.FPNN_EC_CORE_FORBIDDEN));
             return false;
         }
         if (this._cyr.crypto) {
@@ -211,7 +211,7 @@ function sendPubkey() {
 function onPubkey(data) {
     if (data instanceof Error) {
         this._cyr.setCryptoed(false);
-        ErrorRecorder.instance.recordError(new Error('wrong cryptor!'));
+        ErrorRecorder.instance.recordError(new FPError('wrong cryptor!', FPConfig.ERROR_CODE.FPNN_EC_PROTO_UNKNOWN_ERROR));
         return;
     }
     onConnect.call(this);
@@ -287,7 +287,7 @@ function readPeekData() {
     if (!this._peekData) {
         this._peekData = this._cyr.peekHead(this._buffer);
         if (!this._peekData) {
-            this._sock.close(new Error('worng package head!'));
+            this._sock.close(new FPError('worng package head!', FPConfig.ERROR_CODE.FPNN_EC_PROTO_INVALID_PACKAGE));
             return;
         }
     }
@@ -305,7 +305,7 @@ function readPeekData() {
     this._peekData = null;
 
     if (!data) {
-        this._sock.close(new Error('worng package body!'));
+        this._sock.close(new FPError('worng package body!', FPConfig.ERROR_CODE.FPNN_EC_PROTO_INVALID_PACKAGE));
         return;
     }
     if (this._pkg.isAnswer(data)) {
